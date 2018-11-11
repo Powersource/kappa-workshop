@@ -5,9 +5,17 @@ const feed = hypercore("./single-chat-feed", {
   valueEncoding: "json"
 });
 
+feed.ready(function() {
+  console.log("public key:", feed.key.toString("hex"));
+  console.log("discovery key:", feed.discoveryKey.toString("hex"));
+  console.log("secret key:", feed.secretKey.toString("hex"));
+});
+
 const swarm = discovery();
 
-swarm.join("retreat");
+feed.ready(() => {
+  swarm.join(feed.discoveryKey);
+});
 
 swarm.on("connection", function(connection, info) {
   // `info `is a simple object that describes the peer we connected to
@@ -20,10 +28,13 @@ swarm.on("connection", function(connection, info) {
     connection.write(data);
   });
 
-  connection.on("data", function(data) {
-    console.log(data.toString());
-    appendMsg(data)
-  });
+  //connection.on("data", function(data) {
+  //  appendMsg(data);
+  //});
+});
+
+feed.createReadStream({ live: true }).on("data", function(data) {
+  console.log(data);
 });
 
 function appendMsg(msg) {
